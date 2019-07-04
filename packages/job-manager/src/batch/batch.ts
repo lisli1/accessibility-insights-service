@@ -70,22 +70,7 @@ export class Batch {
             taskAddParameters.push(taskAddParameter);
         });
 
-        if (taskAddParameters.length > 0) {
-            const client = await this.batchClientProvider();
-            const taskAddCollectionResult = await client.task.addCollection(jobId, taskAddParameters);
-            taskAddCollectionResult.value.forEach(taskAddResult => {
-                if (/success/i.test(taskAddResult.status)) {
-                    this.jobTasks.get(taskAddResult.taskId).state = JobTaskState.queued;
-                    this.logger.logInfo(`New task ${taskAddResult.taskId} added to the job ${jobId}.`);
-                } else {
-                    this.jobTasks.get(taskAddResult.taskId).state = JobTaskState.failed;
-                    this.jobTasks.get(taskAddResult.taskId).error = taskAddResult.error.message.value;
-                    this.logger.logError(`An error occurred while adding new task ${JSON.stringify(taskAddResult)} to the job ${jobId}.`);
-                }
-            });
-        } else {
-            this.logger.logInfo(`No new tasks added to the job ${jobId}.`);
-        }
+        await this.addTasks(jobId, taskAddParameters);
 
         return Array.from(this.jobTasks.values());
     }
@@ -129,6 +114,47 @@ export class Batch {
         }
 
         return Array.from(this.jobTasks.values());
+    }
+
+    private getChunks<T>(allItems: T[], chunkSize: number): T[][] {
+        const chunks: T[][] = [];
+        const length = allItems.length;
+
+        for (let chunkPos = 0; chunkPos < length; chunkPos += chunkSize) {
+            chunks.push(allItems.slice(chunkPos, chunkPos + chunkSize));
+        }
+
+        return chunks;
+    }
+
+    private async addTasks(jobId: string, allTasks: BatchServiceModels.TaskAddParameter[]): Promise<void> {
+        const chunkSize = 50;
+
+        if (allTasks.length > 0) {
+            const chunks = this.getChunks(allTasks, chunkSize);
+            const client = await this.batchClientProvider();
+
+            const taskAddPromises = chunks.map(async taskAddParameters => {
+                if (taskAddParameters.length > 0) {
+                    const taskAddCollectionResult = await client.task.addCollection(jobId, taskAddParameters);
+                    taskAddCollectionResult.value.forEach(taskAddResult => {
+                        if (/success/i.test(taskAddResult.status)) {
+                            this.jobTasks.get(taskAddResult.taskId).state = JobTaskState.queued;
+                            this.logger.logInfo(`New task ${taskAddResult.taskId} added to the job ${jobId}.`);
+                        } else {
+                            this.jobTasks.get(taskAddResult.taskId).state = JobTaskState.failed;
+                            this.jobTasks.get(taskAddResult.taskId).error = taskAddResult.error.message.value;
+                            this.logger.logError(
+                                `An error occurred while adding new task ${JSON.stringify(taskAddResult)} to the job ${jobId}.`,
+                            );
+                        }
+                    });
+                }
+            });
+            await Promise.all(taskAddPromises);
+        } else {
+            this.logger.logInfo(`No new tasks added to the job ${jobId}.`);
+        }
     }
 
     private async getTasksStateNext(nextPageLink: string): Promise<string> {

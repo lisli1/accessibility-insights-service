@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Queue } from 'azure-services';
+import { Queue, Message } from 'azure-services';
 import { Container } from 'inversify';
 import { BaseTelemetryProperties } from 'logger';
 import { ProcessEntryPointBase } from 'service-library';
@@ -16,7 +16,12 @@ export class JobManagerEntryPoint extends ProcessEntryPointBase {
 
     protected async runCustomAction(container: Container): Promise<void> {
         const queue = container.get(Queue);
-        const scanMessages = await queue.getMessages();
+        let scanMessages: Message[] = [];
+        scanMessages = scanMessages.concat(await queue.getMessages());
+        scanMessages = scanMessages.concat(await queue.getMessages());
+        scanMessages = scanMessages.concat(await queue.getMessages());
+        scanMessages = scanMessages.concat(await queue.getMessages());
+        scanMessages = scanMessages.concat(await queue.getMessages());
 
         const batch = container.get(Batch);
         const jobId = await batch.createJobIfNotExists(process.env.AZ_BATCH_JOB_ID, true);
