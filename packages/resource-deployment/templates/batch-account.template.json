@@ -168,9 +168,9 @@
             "name": "[concat(parameters('batchAccount'), '/url-scan-pool')]",
             "dependsOn": ["[resourceId('Microsoft.Batch/batchAccounts', parameters('batchAccount'))]"],
             "properties": {
-                "vmSize": "STANDARD_A1",
+                "vmSize": "STANDARD_A3",
                 "interNodeCommunication": "Disabled",
-                "maxTasksPerNode": 2,
+                "maxTasksPerNode": 8,
                 "taskSchedulingPolicy": {
                     "nodeFillType": "Spread"
                 },
@@ -187,7 +187,7 @@
                 },
                 "scaleSettings": {
                     "fixedScale": {
-                        "targetDedicatedNodes": 3,
+                        "targetDedicatedNodes": 20,
                         "targetLowPriorityNodes": 0,
                         "resizeTimeout": "PT15M"
                     }

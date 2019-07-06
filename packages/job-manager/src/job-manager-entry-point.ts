@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Queue, Message } from 'azure-services';
+import { Message, Queue } from 'azure-services';
 import { Container } from 'inversify';
 import { BaseTelemetryProperties } from 'logger';
 import { ProcessEntryPointBase } from 'service-library';
