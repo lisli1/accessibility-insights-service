@@ -37,23 +37,23 @@ steps:
           yarn lint
       displayName: run linter
 
-    - script: |
-          yarn test --ci --coverage
-      displayName: run unit tests
+    # - script: |
+    #       yarn test --ci --coverage
+    #   displayName: run unit tests
 
-    - task: PublishTestResults@2
-      inputs:
-          testResultsFiles: 'test-results/unit/junit.xml'
-          searchFolder: '$(Build.SourcesDirectory)'
-          testRunTitle: unit tests
-      condition: always()
-      displayName: publish unit test results
+    # - task: PublishTestResults@2
+    #   inputs:
+    #       testResultsFiles: 'test-results/unit/junit.xml'
+    #       searchFolder: '$(Build.SourcesDirectory)'
+    #       testRunTitle: unit tests
+    #   condition: always()
+    #   displayName: publish unit test results
 
-    - task: PublishCodeCoverageResults@1
-      inputs:
-          codeCoverageTool: Cobertura
-          summaryFileLocation: '$(Build.SourcesDirectory)/test-results/unit/coverage/cobertura-coverage.xml'
-      displayName: publish code coverage
+    # - task: PublishCodeCoverageResults@1
+    #   inputs:
+    #       codeCoverageTool: Cobertura
+    #       summaryFileLocation: '$(Build.SourcesDirectory)/test-results/unit/coverage/cobertura-coverage.xml'
+    #   displayName: publish code coverage
 
     - task: CopyFiles@2
       inputs:
