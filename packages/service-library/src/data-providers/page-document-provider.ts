@@ -78,9 +78,7 @@ export class PageDocumentProvider {
 
     public async getPagesNeverScanned(websiteId: string, itemCount: number): Promise<WebsitePage[]> {
         const query = `SELECT TOP ${itemCount} * FROM c WHERE
-    c.itemType = '${
-        ItemType.page
-    }' and c.websiteId = '${websiteId}' and c.lastReferenceSeen >= '${this.getMinLastReferenceSeenValue()}' and c.basePage = true
+    c.itemType = '${ItemType.page}' and c.websiteId = '${websiteId}' and c.lastReferenceSeen >= '${this.getMinLastReferenceSeenValue()}'
     and (IS_NULL(c.lastRun) or NOT IS_DEFINED(c.lastRun))`;
 
         return this.executeQueryWithContinuationToken<WebsitePage>(async token => {
@@ -97,9 +95,7 @@ export class PageDocumentProvider {
             .toJSON();
 
         const query = `SELECT TOP ${itemCount} * FROM c WHERE
-    c.itemType = '${
-        ItemType.page
-    }' and c.websiteId = '${websiteId}' and c.lastReferenceSeen >= '${this.getMinLastReferenceSeenValue()}' and c.basePage = true
+    c.itemType = '${ItemType.page}' and c.websiteId = '${websiteId}' and c.lastReferenceSeen >= '${this.getMinLastReferenceSeenValue()}'
     and (
     ((c.lastRun.state = '${RunState.failed}' or c.lastRun.state = '${RunState.queued}' or c.lastRun.state = '${RunState.running}')
         and (c.lastRun.retries < ${
