@@ -72,7 +72,12 @@ export function createPageDocument(options?: {
     return page;
 }
 
-export function createWebsiteDocument(options?: { label?: string; websiteId?: string; baseUrl?: string }): Website {
+export function createWebsiteDocument(options?: {
+    label?: string;
+    websiteId?: string;
+    baseUrl?: string;
+    deepScanningEnabled?: boolean;
+}): Website {
     const website = {
         id: createRandomString('id'),
         itemType: ItemType.website,
@@ -81,6 +86,7 @@ export function createWebsiteDocument(options?: { label?: string; websiteId?: st
         name: createRandomString('name'),
         baseUrl: options === undefined || options.baseUrl === undefined ? createBaseUrl() : options.baseUrl,
         serviceTreeId: createRandomString('serviceTreeId'),
+        deepScanningEnabled: options.deepScanningEnabled,
     };
     (<any>website).label = options === undefined || options.label === undefined ? undefined : options.label;
 

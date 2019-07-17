@@ -6,7 +6,7 @@ import 'reflect-metadata';
 import { StorageClient } from 'azure-services';
 import { Logger } from 'logger';
 import * as moment from 'moment';
-import { RunState, WebsitePage } from 'storage-documents';
+import { RunState, Website, WebsitePage } from 'storage-documents';
 import { IMock, Mock } from 'typemoq';
 import * as dbHelper from '../test-utilities/db-mock-helpers';
 import { PageDocumentProvider } from './page-document-provider';
@@ -36,6 +36,7 @@ describe(PageDocumentProvider, () => {
         let loggerMock: IMock<Logger>;
         let testSubject: PageDocumentProvider;
         let websiteId: string;
+        let webSite: Website;
         let afterLastReferenceSeenTime: string;
         let afterRescanIntervalTime: string;
         let beforeRescanIntervalTime: string;
@@ -49,6 +50,12 @@ describe(PageDocumentProvider, () => {
 
         beforeEach(() => {
             websiteId = dbHelper.createRandomString('websiteId');
+            webSite = dbHelper.createWebsiteDocument({
+                websiteId: websiteId,
+                label: 'website-label-1',
+                deepScanningEnabled: true,
+            });
+
             loggerMock = Mock.ofType<Logger>();
             const storageClient = new StorageClient(
                 dbHelper.cosmosClient,
@@ -101,7 +108,7 @@ describe(PageDocumentProvider, () => {
             });
         }
 
-        function verifyQueryResultsWithoutOrder(expectedQueryResults: WebsitePage[], actualResults: WebsitePage[]): void {
+        function verifyQueryResultsWithoutOrder<T>(expectedQueryResults: T[], actualResults: T[]): void {
             const actualResultProjections = dbHelper.getDocumentProjections(actualResults);
             const expectedQueryResultProjections = dbHelper.getDocumentProjections(expectedQueryResults);
 
@@ -140,7 +147,7 @@ describe(PageDocumentProvider, () => {
                 ]);
                 queryResults = [pageAfterMinLastReferenceSeen1, pageAfterMinLastReferenceSeen2];
 
-                const actualResults = await testSubject.getPagesNeverScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesNeverScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             }, 3000);
@@ -161,7 +168,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems([pageWithLastRunNull, pageWithLastRunNotFound, pageWithLastRunInfo]);
                 queryResults = [pageWithLastRunNull, pageWithLastRunNotFound];
 
-                const actualResults = await testSubject.getPagesNeverScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesNeverScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             }, 3000);
@@ -173,12 +180,13 @@ describe(PageDocumentProvider, () => {
 
                 await dbHelper.upsertItems([basePage1, basePage2, childPage]);
 
-                const actualResults = await testSubject.getPagesNeverScanned(websiteId, 1);
+                const actualResults = await testSubject.getPagesNeverScanned(webSite, 1);
 
                 expect(actualResults.length).toBe(1);
             }, 3000);
 
             it('returns base page results only', async () => {
+                webSite.deepScanningEnabled = false;
                 let queryResults: WebsitePage[];
                 const basePage1 = createPageWithoutLastRunInfo(afterLastReferenceSeenTime, 'base page 1', true);
                 const basePage2 = createPageWithoutLastRunInfo(afterLastReferenceSeenTime, 'base page 2', true);
@@ -187,7 +195,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems([basePage1, basePage2, childPage]);
                 queryResults = [basePage1, basePage2];
 
-                const actualResults = await testSubject.getPagesNeverScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesNeverScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -226,7 +234,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems(queryResults);
                 await dbHelper.upsertItems(nonQueryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -258,7 +266,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems(queryResults);
                 await dbHelper.upsertItems(nonQueryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -298,7 +306,7 @@ describe(PageDocumentProvider, () => {
 
                 await dbHelper.upsertItems(queryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithOrder([page3, page1, page2], actualResults);
             });
@@ -338,12 +346,13 @@ describe(PageDocumentProvider, () => {
 
                 await dbHelper.upsertItems(queryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 2);
+                const actualResults = await testSubject.getPagesScanned(webSite, 2);
 
                 expect(actualResults.length).toBe(2);
             });
 
             it('returns base pages only', async () => {
+                webSite.deepScanningEnabled = false;
                 let queryResults: WebsitePage[];
 
                 const basePage1 = createPageWithLastRunInfo(
@@ -379,7 +388,7 @@ describe(PageDocumentProvider, () => {
 
                 await dbHelper.upsertItems([basePage1, basePage2, childPage]);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -431,7 +440,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems(queryResults);
                 await dbHelper.upsertItems(nonQueryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -466,7 +475,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems(queryResults);
                 await dbHelper.upsertItems(nonQueryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -501,7 +510,7 @@ describe(PageDocumentProvider, () => {
                 await dbHelper.upsertItems(queryResults);
                 await dbHelper.upsertItems(nonQueryResults);
 
-                const actualResults = await testSubject.getPagesScanned(websiteId, 10);
+                const actualResults = await testSubject.getPagesScanned(webSite, 10);
 
                 verifyQueryResultsWithoutOrder(queryResults, actualResults);
             });
@@ -509,16 +518,16 @@ describe(PageDocumentProvider, () => {
 
         describe('getWebsiteIds', () => {
             it('returns website ids', async () => {
-                const website1 = dbHelper.createWebsiteDocument({ websiteId: 'site1' });
-                const website2 = dbHelper.createWebsiteDocument({ websiteId: 'site1' });
-                const website3 = dbHelper.createWebsiteDocument({ websiteId: 'site1' });
+                const website1 = dbHelper.createWebsiteDocument({ websiteId: 'site1-id', label: 'website-1' });
+                const website2 = dbHelper.createWebsiteDocument({ websiteId: 'site2-id', label: 'website-2' });
+                const website3 = dbHelper.createWebsiteDocument({ websiteId: 'site3-id', label: 'website-3' });
                 const allWebsites = [website1, website2, website3];
 
                 await dbHelper.upsertItems(Array.from(allWebsites));
 
-                const actualQueryResults = await testSubject.getWebsiteIds();
+                const actualQueryResults = await testSubject.getWebsites();
 
-                expect(new Set(actualQueryResults.item)).toEqual(new Set(allWebsites.map(s => s.websiteId)));
+                verifyQueryResultsWithoutOrder(allWebsites, actualQueryResults.item);
             });
         });
     }
